@@ -1,0 +1,115 @@
+enp0s3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 192.168.1.16  netmask 255.255.255.0  broadcast 192.168.1.255
+        inet6 fe80::a00:27ff:feb8:534a  prefixlen 64  scopeid 0x20<link>
+        ether 08:00:27:b8:53:4a  txqueuelen 1000  (Ethernet)
+        RX packets 1077  bytes 616822 (616.8 KB)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 656  bytes 77425 (77.4 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+1) # lsb_release -a
+2) # apt update
+3) # hostname
+
+
+// cấu hình lại dash và dừng chương trình bảo mật app apparmor
+4) # dpkg-reconfigure dash
+5) # systemctl stop apparmor
+6) # systemctl disable apparmor
+
+// cài đặt MariaDB, Postfix, Dovecot
+7) # apt -y install mariadb-server postfix postfix-mysql openssl dovecot-mysql dovecot-pop3d dovecot-sieve dovecot-lmtpd binutils dovecot-imapd
+8) # vi /etc/postfix/master.cf -> sửa một số nội dung
+9) sửa một số nội dung
+submission inet n - y - - smtpd
+-o syslog_name=postfix/submission
+-o smtpd_tls_security_level=encrypt
+-o smtpd_sasl_auth_enable=yes
+smtps inet n - y - - smtpd
+-o syslog_name=postfix/smtps
+-o smtpd_tls_wrappermode=yes
+-o smtpd_sasl_auth_enable=yes
+-o smtpd_client_restrictions=permit_sasl_authenticated,reject
+10) # systemctl restart postfix
+11) # mysql_secure_installation
+12) # systemctl restart mariadb.service
+
+
+// Cài đặt Spamassassin, Clamav và Amav
+13) # apt -y install spamassassin clamav clamav-daemon amavisd-new postgrey zip unzip bzip2 arj nomarch lzop cabextract libnet-ldap-perl libauthen-sasl-perl daemon libnet-ident-perl libnet-dns-perl libio-string-perl libio-socket-ssl-perl apt-listchanges
+14) # systemctl stop spamassassin
+15) # systemctl disable spamassassin
+16) # freshclam
+17) # systemctl start clamav-daemon
+18) # cd /tmp
+19) # wget https://git.ispconfig.org/ispconfig/i...
+20) # cd /usr/sbin
+21) # cp -pf amavisd-new amavisd-new_bak
+
+
+// Cài đặt Apache và các gói khác
+23) # Apt -y install apache2 apache2-utils apache2-doc libapache2-mod-php php7.2 php7.2-common php7.2-cli php7.2-mysql php7.2-sqlite3 php7.2-imap php7.2-gd php7.2-cgi php7.2-zip php7.2-mbstring php7.2-opcache php7.2-curl php7.2-intl php7.2-pspell php7.2-recode php7.2-tidy php7.2-xmlrpc php7.2-xsl libapache2-mod-fcgid apache2-suexec-pristine php-pear mcrypt imagemagick libruby memcached php-memcache php-imagick libapache2-mod-python php-gettext php-apcu phpmyadmin mailman roundcube roundcube-core roundcube-mysql roundcube-plugins php-net-sieve tinymce getmail4 javascript-common libjs-jquery-mousewheel rkhunter binutils vlogger webalizer awstats geoip-database libclass-dbi-mysql-perl bind9 dnsutils haveged daemon libio-string-perl libio-socket-ssl-perl libnet-ident-perl quota quotatool libnet-dns-perl pure-ftpd-common pure-ftpd-mysql cabextract certbot php-soap php7.2-soap
+24) # 2enmod suexec rewrite ssl actions include cgi
+// Cấu hình Apache và php
+25) # a2enmod dav_fs dav auth_digest headers
+26) # apt-get -y install php7.2-fpm
+27) # a2enmod actions proxy_fcgi alias 
+28) # service apache2 restart
+29) # vi /etc/roundcube/config.inc.php
+$config['default_host'] = 'localhost';
+//cấu hình ftpd
+30) vi /etc/default/pure-ftpd-common
+VIRTUALCHROOT=true
+31) # systemctl restart pure-ftpd-mysql
+// Tạo danh sách mailman mới
+32) # newlist mailman
+33) # vi /etc/aliases
+34) # newaliases
+35) # systemctl restart mailman
+36) # vi /etc/cron.d/awstats
+#MAILTO=root
+#*/10 * * * * www-data [ -x /usr/share/awstats/tools/update.sh ] && /usr/share/awstats/tools/update.sh
+# Generate static reports:
+#10 03 * * * www-data [ -x /usr/share/awstats/tools/buildstatic.sh ] && /usr/share/awstats/tools/buildstatic.sh
+
+// Cài đặt fail2ban
+37) # apt install fail2ban -y
+38) # vi /etc/fail2ban/jail.local
+[pure-ftpd]
+enabled = true
+port = ftp
+filter = pure-ftpd
+logpath = /var/log/syslog
+maxretry = 3
+[dovecot]
+enabled = true
+filter = dovecot
+action = iptables-multiport[name=dovecot-pop3imap, port="pop3,pop3s,imap,imaps", protocol=tcp]
+logpath = /var/log/mail.log
+maxretry = 5
+[postfix]
+enabled = true
+port = smtp
+filter = postfix
+logpath = /var/log/mail.log
+maxretry = 3
+
+
+//Cài đặt jailkit
+39) # apt-get -y install build-essential autoconf automake1.11 libtool flex bison debhelper
+40) # cd /tmp
+41) # wget http://olivier.sessink.nl/jailkit/jai...
+42) # tar xvfz jailkit-2.20.tar.gz
+43) # cd jailkit-2.20
+45) # ./debian/rules binary
+46) # cd ..
+47) # dpkg -i jailkit_2.20-1_*.deb
+
+
+//Cài đặt ispconfig
+48) # cd /tmp
+49) # wget -O ispconfig.tar.gz https://git.ispconfig.org/ispconfig/i...
+50) # tar xfz ispconfig.tar.gz
+51) # cd ispconfig3*/install/
+52) # php -q install.php

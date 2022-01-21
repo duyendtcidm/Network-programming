@@ -1,0 +1,4 @@
+d2 sdf 1
+d1 de 2
+hh jj 1
+de dd 0

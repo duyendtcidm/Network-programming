@@ -1,0 +1,8 @@
+./a.out 2 goole.com
+./a.out 2 aznsc.test.hi            //
+./a.out 2 103.111.111.108
+
+./a.out 1 97.122.110.115
+./a.out 1 259.12.34.12              
+./a.out 1 1.2.3                      // wrong  -> wrong parameter
+./a.out 1 apple.com
